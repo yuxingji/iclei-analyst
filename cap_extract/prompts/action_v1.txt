@@ -1,0 +1,1 @@
+Extract substantive actions explicitly stated on these pages. Preserve target, baseline, year, cost, finance and implementation wording separately. Do not infer funding is secured from a named source. Do not score quality. Leave unknown fields empty. Every record must have source_page from supplied page markers and a verbatim evidence_text quote of at most 300 characters.

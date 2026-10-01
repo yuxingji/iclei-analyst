@@ -1,0 +1,198 @@
+version: "2.2"
+prompt_version: "v2_2"
+schemas:
+  Plan Level:
+    - plan_id
+    - state
+    - jurisdiction
+    - gov_type
+    - plan_year
+    - plan_title
+    - plan_orientation_controlled
+    - document_type_controlled
+    - document_type_verbatim
+    - plan_scope
+    - plan_scope_verbatim
+    - plan_formal_status
+    - adoption_date
+    - adopting_body
+    - formal_status_verbatim
+    - plan_implementation_status
+    - new_or_update
+    - prior_plan_year
+    - policy_integration_raw
+    - primary_author_raw
+    - governance_body_raw
+    - monitoring_raw
+    - source_page
+    - evidence_text
+    - confidence
+    - source_file
+    - discovery_tag
+  Risk Level:
+    - risk_id
+    - plan_id
+    - M_or_A
+    - hazard_normalized
+    - hazard_verbatim
+    - affected_sector
+    - affected_asset_or_population
+    - municipal_fiscal_link
+    - fiscal_consequence_disclosed
+    - revenue_consequence
+    - expenditure_consequence
+    - asset_consequence
+    - service_consequence
+    - quantified_value
+    - unit_currency
+    - scenario_horizon
+    - linked_action_raw
+    - source_page
+    - evidence_text
+    - confidence
+    - discovery_tag
+  Action Level:
+    - action_id
+    - plan_id
+    - M_or_A
+    - action_title
+    - action_description
+    - responsible_owner
+    - supporting_partner
+    - target_value
+    - target_unit
+    - baseline
+    - target_year
+    - quantified_output
+    - implementation_status_raw
+    - implementation_status_normalized
+    - timeline_milestone
+    - kpi_metric
+    - cost_amount
+    - currency
+    - cost_type
+    - funding_source
+    - funding_status
+    - budget_CIP_link
+    - recurring_cost_raw
+    - financial_appraisal
+    - source_page
+    - evidence_text
+    - confidence
+    - discovery_tag
+fields:
+  plan_orientation_controlled:
+    definition: Classify substantive plan content, not the title; choose Combined when substantive mitigation and adaptation content are both present.
+    allowed: [Mitigation, Adaptation, Combined]
+  document_type_controlled:
+    definition: Map the document to the closest controlled type; do not invent types for Strategy, Playbook, Roadmap, or Framework.
+    allowed: [Climate Action Plan, Energy Plan, Sustainability Plan, Resilience Plan, Vulnerability Assessment, Other]
+  document_type_verbatim:
+    definition: The document's own name for itself, exactly as written in the PDF.
+    allowed: free text
+  plan_scope:
+    definition: Controlled scope of activities or assets covered.
+    allowed: [Government Operations, Community-wide, Both, Unclear]
+  plan_scope_verbatim:
+    definition: The plan's own wording describing its scope.
+    allowed: free text
+  plan_formal_status:
+    definition: Formal publication or adoption status, independent of implementation status.
+    allowed: [Draft, Interim, Final, Adopted, Unclear]
+  adoption_date:
+    definition: ISO date if fully stated; otherwise preserve the date wording in the PDF.
+    allowed: date or free text
+  adopting_body:
+    definition: The governing body explicitly approving, adopting, or passing the plan.
+    allowed: free text
+  formal_status_verbatim:
+    definition: Exact wording supporting formal status and adoption details.
+    allowed: free text
+  plan_implementation_status:
+    definition: Plan-level summary of implementation; independent of formal status. Action-level status remains primary.
+    allowed: [Not Started, Implementing, Operational, Completed, Ongoing, Unclear]
+  M_or_A:
+    definition: Mitigation or adaptation classification for each individual risk or action, including rows from Combined plans.
+    allowed: [Mitigation, Adaptation, Both, Unclear]
+  fiscal_consequence_disclosed:
+    definition: Yes only when the plan explicitly states a municipal revenue, expenditure, asset, service-capacity, or capital-need consequence. Resident-only impact is not a municipal fiscal consequence. No is meaningful when none is disclosed.
+    allowed: ["Yes", "No"]
+  action_description:
+    definition: Concise description of one independently identifiable intervention including merged steps of one programme.
+    allowed: free text, maximum 500 characters, truncate at a word boundary
+prompts:
+  plan: |
+    Classify plan orientation from substantive content, not the title. Use Combined only when both substantive mitigation and substantive adaptation content are present. Map document names such as Strategy, Playbook, Roadmap, and Framework to the closest controlled document type and preserve the document's own name in document_type_verbatim. Keep plan_scope controlled and preserve its wording in plan_scope_verbatim.
+    Formal status and implementation status are independent; never infer one from the other. Draft means draft, public consultation version, or not finalised. Interim means explicitly temporary or transitional. Final means finalised with no evidence of formal government adoption. Adopted requires explicit approval, adoption, or passage by a governing body. Unclear means the PDF does not determine it. Extract adoption_date and adopting_body only when stated, and preserve exact supporting wording in formal_status_verbatim. Plan-level implementation status is a summary only; action-level implementation_status_normalized is the primary delivery variable.
+  risk: |
+    Include an environmental risk only when the plan states clear local relevance to this jurisdiction's territory, assets, services, operations, finances, or residents. Skip general climate science and regional, national, or global background. Local risk does not require a fiscal consequence. Structure each distinct environmental risk -> local exposure -> economic, asset, or service consequence -> fiscal consequence chain; later links may be empty and must never be inferred. Residents' local exposure is valid, but resident impact alone is not a municipal fiscal consequence. Set fiscal_consequence_disclosed to Yes only for an explicit municipal revenue, expenditure, asset, service-capacity, or capital-need consequence; otherwise set No. Use a controlled hazard label, never socioeconomic trends as hazards. Create one row per distinct hazard and exposure/consequence chain; merge repeated mentions of the same chain. Give every row M_or_A as Mitigation, Adaptation, Both, or Unclear.
+  action: |
+    Unit of analysis is one independently identifiable intervention, project, programme, or policy. Do not split by sentence or bullet count. Merge steps of one programme into one action and list the steps in action_description. Split sub-items only if a sub-item has its own owner, target, timeline, implementation status, cost, funding source, or is clearly implementable on its own. Every row receives M_or_A = Mitigation, Adaptation, Both, or Unclear. action_description may contain up to 500 characters; truncate at a word boundary and never fail extraction for length.
+eval_mappings:
+  plan_orientation_controlled:
+    Mitigation / Sustainability: Mitigation
+  document_type_controlled:
+    Climate Action Plan: Climate Action Plan
+    Sustainability Plan: Sustainability Plan
+    Energy Strategy: Energy Plan
+    Energy Plan: Energy Plan
+    Sea-Level Rise / Adaptation Plan: Resilience Plan
+    Heat Resilience Playbook: Resilience Plan
+    Climate Adaptation / Resilience Report: Vulnerability Assessment
+  plan_scope:
+    Community + municipal assets: Both
+    Community + infrastructure: Both
+  plan_formal_status:
+    Final: Final
+  M_or_A:
+    M: Mitigation
+    A: Adaptation
+schema_changes:
+  - field: plan_orientation
+    change: Renamed to plan_orientation_controlled
+    reason: Make the controlled plan-orientation variable explicit.
+  - field: document_genre
+    change: Removed
+    reason: Replaced by a controlled document category and the document's own wording.
+  - field: document_type_controlled
+    change: Added
+    reason: Map document labels to one stable comparison category.
+  - field: document_type_verbatim
+    change: Added
+    reason: Preserve the document's own name as printed in the PDF.
+  - field: plan_scope_verbatim
+    change: Added
+    reason: Retain the source wording alongside controlled plan scope.
+  - field: plan_scope
+    change: Controlled values finalized as Government Operations, Community-wide, Both, and Unclear
+    reason: Standardize comparison categories while the companion verbatim field preserves source wording.
+  - field: plan_status
+    change: Removed
+    reason: Split into formal status, adoption metadata, and implementation status.
+  - field: plan_formal_status
+    change: Added
+    reason: Record draft/interim/final/adopted status independently of implementation.
+  - field: adoption_date
+    change: Added
+    reason: Capture the stated approval or adoption date.
+  - field: adopting_body
+    change: Added
+    reason: Capture the named governing body approving or adopting the plan.
+  - field: formal_status_verbatim
+    change: Added
+    reason: Retain exact text supporting the formal status.
+  - field: plan_implementation_status
+    change: Added
+    reason: Summarize implementation separately from formal status.
+  - field: M_or_A (Risk Level)
+    change: Added
+    reason: Permit mitigation/adaptation analysis at the individual risk-row level.
+  - field: M_or_A (Action Level)
+    change: Controlled values normalized from M/A to Mitigation/Adaptation, with Both and Unclear
+    reason: Use consistent full labels for row-level analysis across risks and actions.
+  - field: fiscal_consequence_disclosed
+    change: Added
+    reason: Distinguish explicit municipal fiscal consequences from resident-only exposure and missing information.
+  - field: action_description
+    change: Limit raised from 300 to 500 characters
+    reason: Preserve the merged steps of one independently identifiable intervention.

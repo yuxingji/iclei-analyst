@@ -1,0 +1,10 @@
+pymupdf
+pandas
+openpyxl
+rapidfuzz
+requests
+pydantic>=2
+openai>=1.0
+PyYAML
+tqdm
+pyarrow

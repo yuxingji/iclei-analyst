@@ -1,0 +1,32 @@
+hazards:
+  flooding: [flooding, flood, inundation]
+  sea-level rise: ['sea[- ]level rise', coastal inundation]
+  storm surge: [storm surge]
+  hurricane: [hurricane, tropical storm]
+  extreme heat: [extreme heat, heat wave, heatwave]
+  drought: [drought]
+  wildfire: [wildfire, wild fire]
+  extreme precipitation: [extreme precipitation, heavy rainfall, intense precipitation]
+  water scarcity: [water scarcity, water shortage]
+  winter storm: [winter storm, ice storm, blizzard]
+  landslide: [landslide, mudslide]
+  air quality/smoke: [air quality, wildfire smoke, smoke exposure]
+  vector-borne disease: ['vector[- ]borne disease', 'tick[- ]borne', 'mosquito[- ]borne']
+finance: [grant, bond, debt, capital improvement plan, capital improvement program, CIP, capital budget, operating budget, general fund, federal funding, state funding, utility, rebate, payback, benefit-cost, BCR, NPV, avoided loss, funded, unfunded, funding secured, seeking funding]
+governance: ['annual report', 'progress report', dashboard, 'GHG inventory', 'every [0-9]+ years?']
+implementation: [completed, implemented, 'in progress', underway, ongoing, proposed, planned, pilot]
+track_record: ['previous plan', 'prior plan', 'update to', 'since (?:19|20)\d\d', achieved, reduced]
+mitigation: [mitigation, emissions reduction, decarbonization, renewable energy, energy efficiency]
+adaptation: [adaptation, resilience, vulnerability, climate risk]
+target_patterns:
+  - '(?P<value>\d+(?:\.\d+)?)\s*(?:%|percent\b)[^.\n]{0,180}?(?:below|reduction|reduce|less than|from)[^.\n]{0,100}?(?:(?:baseline|levels?)(?:\s+of)?\s*)?(?P<baseline>(?:19|20)\d{2})[^.\n]{0,80}?(?:by\s+)?(?P<year>20\d{2})'
+  - '(?P<value>\d+(?:\.\d+)?)\s*(?:%|percent\b)[^.\n]{0,180}?(?:below|reduction|reduce|less than|from)[^.\n]{0,100}?(?:(?:baseline|levels?)(?:\s+of)?\s*)?(?P<baseline>(?:19|20)\d{2})[^.\n]{0,80}?(?:by\s+)?(?P<year>20\d{2})'
+  - '(?P<phrase>net zero|carbon neutral|carbon neutrality|climate neutral)[^.\n]{0,100}?by\s+(?P<year>20\d{2})'
+  - '(?P<value>100)\s*(?:%|percent)\s+renewable[^.\n]{0,80}?by\s+(?P<year>20\d{2})'
+money_pattern: '\$\s?[\d,.]+\s?(?:million|billion|m|k|thousand)?'
+action_table_pattern: '(?im)^\s*(?:[A-Z]{1,4}[- ]?\d+(?:\.\d+)?|Action\s+\d+)\b'
+governance_body_pattern: '\b(?:[A-Z][\w&/-]+\s+){0,5}(?:Office|Department|Committee|Task Force|Commission)\b'
+monitoring_pattern: 'annual report|progress report|dashboard|monitoring|GHG inventory'
+cip_pattern: '\bCIP\b|capital improvement'
+bond_pattern: '\bbond'
+grant_pattern: '\bgrant'
