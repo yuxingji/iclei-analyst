@@ -1,0 +1,211 @@
+version: "2.3"
+prompt_version: "v2_3"
+schemas:
+  Plan Level:
+    - plan_id
+    - plan_publish_year
+    - plan_publish_year_source
+    - plan_active_year
+    - state
+    - jurisdiction
+    - gov_type
+    - plan_year
+    - plan_title
+    - plan_orientation_controlled
+    - plan_orientation_verbatim
+    - plan_orientation_check
+    - document_type_controlled
+    - document_type_verbatim
+    - plan_scope
+    - plan_scope_verbatim
+    - plan_formal_status
+    - adoption_date
+    - adopting_body
+    - formal_status_verbatim
+    - plan_implementation_status
+    - new_or_update
+    - prior_plan_year
+    - policy_integration_raw
+    - primary_author_raw
+    - governance_body_raw
+    - monitoring_raw
+    - source_page
+    - evidence_text
+    - confidence
+    - source_file
+    - discovery_tag
+  Risk Level:
+    - risk_id
+    - plan_id
+    - M_or_A
+    - hazard_normalized
+    - hazard_verbatim
+    - affected_sector
+    - affected_asset_or_population
+    - municipal_fiscal_link
+    - fiscal_consequence_disclosed
+    - revenue_consequence
+    - expenditure_consequence
+    - asset_consequence
+    - service_consequence
+    - quantified_value
+    - unit_currency
+    - scenario_horizon
+    - linked_action_raw
+    - source_page
+    - evidence_text
+    - confidence
+    - discovery_tag
+  Action Detail:
+    - action_id
+    - plan_id
+    - plan_publish_year
+    - plan_publish_year_source
+    - plan_active_year
+    - action_orientation
+    - action_title
+    - action_description
+    - responsible_owner
+    - supporting_partner
+    - target_value
+    - target_unit
+    - baseline
+    - target_year
+    - quantified_output
+    - implementation_status_raw
+    - implementation_status_normalized
+    - timeline_milestone
+    - kpi_metric
+    - cost_raw
+    - cost_type
+    - cost_numeric_min
+    - cost_numeric_max
+    - cost_currency
+    - cost_qualitative
+    - cost_basis
+    - cost_legend
+    - funding_source
+    - funding_status
+    - budget_CIP_link
+    - recurring_cost_raw
+    - financial_appraisal
+    - source_page
+    - evidence_text
+    - confidence
+    - discovery_tag
+  Action Level:
+    - plan_id
+    - plan_publish_year
+    - plan_publish_year_source
+    - plan_active_year
+    - orientation
+    - action_count
+    - action_ids
+    - action_titles
+    - unclear_action_count
+    - cost_disclosed_count
+    - exact_monetary_cost_count
+    - monetary_range_cost_count
+    - qualitative_cost_count
+    - staff_existing_resource_cost_count
+    - no_additional_cost_count
+    - cost_details_raw
+    - aggregated_cost_total
+    - aggregated_cost_total_note
+    - responsible_owner_disclosed_count
+    - responsible_owner_details_raw
+    - implementation_status_disclosed_count
+    - implementation_status_details_raw
+    - target_value_disclosed_count
+    - target_value_details_raw
+    - timeline_milestone_disclosed_count
+    - timeline_milestone_details_raw
+    - kpi_metric_disclosed_count
+    - kpi_metric_details_raw
+    - funding_source_disclosed_count
+    - funding_source_details_raw
+    - funding_status_disclosed_count
+    - funding_status_details_raw
+    - budget_CIP_link_disclosed_count
+    - budget_CIP_link_details_raw
+    - financial_appraisal_disclosed_count
+    - financial_appraisal_details_raw
+fields:
+  plan_publish_year:
+    definition: Four-digit publication year from an explicit PDF publication date, else adoption date, else ICLEI metadata.
+    allowed: 4-digit year or empty
+  plan_publish_year_source:
+    definition: Source used for the publication year.
+    allowed: [PDF publication date, Adoption date, ICLEI metadata]
+  plan_active_year:
+    definition: Explicit plan coverage period or planning horizon; never derive from targets.
+    allowed: YYYY-YYYY, -YYYY, or Not Disclosed
+  plan_orientation_controlled:
+    definition: Classify substantive plan content; Both requires substantive mitigation and adaptation content.
+    allowed: [Mitigation, Adaptation, Both, Unclear]
+  plan_orientation_check:
+    definition: Compare the model's plan orientation with orientations represented by classified actions; report mismatch without changing plan orientation.
+    allowed: [Match, Mismatch, Not Checkable]
+  document_type_controlled:
+    definition: Map the document to the closest controlled type and preserve its name verbatim.
+    allowed: [Climate Action Plan, Energy Plan, Sustainability Plan, Resilience Plan, Vulnerability Assessment, Other]
+  plan_scope:
+    definition: Controlled scope of activities or assets covered.
+    allowed: [Government Operations, Community-wide, Both, Unclear]
+  plan_formal_status:
+    definition: Formal publication or adoption status, independent of implementation status.
+    allowed: [Draft, Interim, Final, Adopted, Unclear]
+  plan_implementation_status:
+    definition: Plan-level summary of implementation.
+    allowed: [Not Started, Implementing, Operational, Completed, Ongoing, Unclear]
+  new_or_update:
+    definition: Whether this document is new, an update, or a revision.
+    allowed: [New, Update, Revision, Unclear]
+  M_or_A:
+    definition: Risk-level classification, following schema v2.2.
+    allowed: [Mitigation, Adaptation, Both, Unclear]
+  hazard_normalized:
+    definition: Controlled environmental hazard label, following the v2.2 Risk Level schema.
+    allowed: dictionaries.yaml hazards
+  action_orientation:
+    definition: Each action is Mitigation, Adaptation, or Unclear based on primary stated climate purpose; Both is prohibited at action level.
+    allowed: [Mitigation, Adaptation, Unclear]
+  cost_type:
+    definition: Type of cost disclosure as reported for this action.
+    allowed: [Exact Monetary, Monetary Range, Qualitative, Staff/Existing Resources, No Additional Cost, Unclear, Not Disclosed]
+  cost_numeric_min:
+    definition: Minimum explicitly stated monetary amount, derived from cost_raw; never populate for qualitative or non-monetary resource information.
+    allowed: numeric or empty
+  cost_numeric_max:
+    definition: Maximum explicitly stated monetary amount, derived from cost_raw; never populate for qualitative or non-monetary resource information.
+    allowed: numeric or empty
+  cost_currency:
+    definition: Currency explicitly identifiable from source evidence; do not assume when genuinely ambiguous.
+    allowed: [USD, CAD, AUD, Other, Unclear]
+  cost_qualitative:
+    definition: Preserve the plan's qualitative cost category; do not convert without a plan-specific legend.
+    allowed: free text
+  cost_basis:
+    definition: Cost basis when supported by source evidence.
+    allowed: [Total Project, Annual, Capital, Operating, Per Unit, Staff/Existing Resources, Other, Unclear]
+  cost_legend:
+    definition: Verbatim plan-specific definition of qualitative cost categories.
+    allowed: free text
+prompts:
+  plan: |
+    Return one Plan Level record. Restore schema v2.2 extraction rules. Classify plan orientation as Mitigation, Adaptation, Both, or Unclear based on substantive content, not title. Both requires substantive mitigation and adaptation content. Use the closest controlled document type and preserve the printed wording. Formal and implementation status are independent; Adopted requires explicit approval, adoption, or passage. Extract author, governance, monitoring/reporting and policy integration from supplied pages. Cite exact supplied page markers with verbatim evidence.
+  risk: |
+    Return separate Risk Level records using schema v2.2 fields and risk rules. Include a risk only when the plan links it to this jurisdiction's own territory, assets, services, operations, finances, or residents. Skip generic regional/national/global background. One row per distinct hazard and local exposure/consequence chain; merge repeated mentions. Resident exposure is valid, but resident impact alone is not a municipal fiscal consequence. Use a controlled hazard label. Do not infer consequences.
+  action: |
+    Return individual Action Detail records using v2.2 action granularity: one independently identifiable intervention/project/programme/policy per row, merging steps and bullets unless a sub-item has independent owner, target, timeline, status, cost, funding, or can stand alone. Do not create background-only actions. Classify action_orientation ONLY as Mitigation, Adaptation, or Unclear; never Both. Use primary stated purpose and the evidence hierarchy: objective, intended outcome, mechanism, section, context. General sustainability, parks, biodiversity, economic development, land use, recycling, water conservation, tree planting, public transport, walking/cycling and green infrastructure are not automatically mitigation. Context-dependent actions require explicit climate purpose. Leave Unclear when the PDF does not establish primary purpose.
+    For each action preserve cost_raw and classify cost_type as Exact Monetary, Monetary Range, Qualitative, Staff/Existing Resources, No Additional Cost, Unclear, or Not Disclosed. Put numeric values only for explicit monetary exact/range costs; derive cost_numeric_min/max and currency in code from cost_raw. A qualitative category remains qualitative. Do not interpret $$$ without a legend; preserve a plan-specific legend verbatim. Existing staff/resources are not monetary. No additional cost is not numeric zero unless explicit $0. Savings, bill savings, avoided costs and revenue are not costs; route those to financial_appraisal. Use cost_basis only when supported. Preserve all v2.2 action fields and cite exact page evidence.
+schema_changes:
+  - field: plan_publish_year / plan_publish_year_source / plan_active_year
+    change: Added to Plan Level, Action Level, and Action Detail immediately after plan_id.
+    reason: Distinguish publication year from explicit plan coverage period and preserve provenance.
+  - field: schema_version
+    change: v2.2 extraction restored with researcher action orientation, cost structuring, and plan-orientation aggregation check.
+    reason: Maintain the reviewed v2.2 extraction model while adding only the requested v2.3 changes.
+  - field: Action Level
+    change: Aggregated to at most one Mitigation and one Adaptation row per plan; individual rows moved to Action Detail.
+    reason: Enable comparable Plan x Orientation observations while retaining action-level source detail.

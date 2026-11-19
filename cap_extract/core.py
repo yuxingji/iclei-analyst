@@ -10,7 +10,7 @@ DB = OUT / "cap.sqlite"
 TEMPLATE = ROOT / "CAP_PDF_Structured_Extraction_Template_v2_1.xlsx"
 PDF_DIR = ROOT / "outputs" / "iclei_cap" / "pdf"
 ATLAS = ROOT / "outputs" / "iclei_cap" / "atlas_inventory.csv"
-SCHEMA_CONFIG = Path(__file__).parent / 'schema_v2_2.yaml'
+SCHEMA_CONFIG = Path(__file__).parent / 'schema_v2_3.yaml'
 
 @lru_cache(maxsize=1)
 def schema_config():
@@ -30,12 +30,16 @@ def connect():
     CREATE TABLE IF NOT EXISTS page_hits(plan_id TEXT,page_no INTEGER,hits_json TEXT,relevance REAL,action_table INTEGER,PRIMARY KEY(plan_id,page_no));
     CREATE TABLE IF NOT EXISTS rule_features(plan_id TEXT PRIMARY KEY,features_json TEXT);
      CREATE TABLE IF NOT EXISTS llm_raw(id INTEGER PRIMARY KEY,plan_id TEXT,task TEXT,model TEXT,prompt_hash TEXT,created_at TEXT,duration REAL,response TEXT,error TEXT,options TEXT);
-     CREATE TABLE IF NOT EXISTS llm_runs(run_id TEXT PRIMARY KEY,provider TEXT,requested_model TEXT,actual_model TEXT,started_at TEXT,ended_at TEXT,input_cached INTEGER DEFAULT 0,input_uncached INTEGER DEFAULT 0,output_tokens INTEGER DEFAULT 0,reasoning_tokens INTEGER DEFAULT 0,reasoning_cost_usd REAL DEFAULT 0,cost_usd REAL DEFAULT 0,cost_discounted_usd REAL DEFAULT 0,api_calls INTEGER DEFAULT 0,retries INTEGER DEFAULT 0,status TEXT);
+     CREATE TABLE IF NOT EXISTS llm_runs(run_id TEXT PRIMARY KEY,provider TEXT,requested_model TEXT,actual_model TEXT,started_at TEXT,ended_at TEXT,input_cached INTEGER DEFAULT 0,input_uncached INTEGER DEFAULT 0,output_tokens INTEGER DEFAULT 0,reasoning_tokens INTEGER DEFAULT 0,reasoning_cost_usd REAL DEFAULT 0,cost_usd REAL DEFAULT 0,cost_discounted_usd REAL DEFAULT 0,api_calls INTEGER DEFAULT 0,retries INTEGER DEFAULT 0,status TEXT,schema_hash TEXT);
      CREATE TABLE IF NOT EXISTS llm_prompt_versions(run_id TEXT,task TEXT,prompt_hash TEXT,PRIMARY KEY(run_id,task));
     CREATE TABLE IF NOT EXISTS extracted(plan_id TEXT,task TEXT,payload TEXT,PRIMARY KEY(plan_id,task));
+     CREATE TABLE IF NOT EXISTS extracted_archive(plan_id TEXT,schema_hash TEXT,task TEXT,payload TEXT,archived_at TEXT,PRIMARY KEY(plan_id,schema_hash,task));
+     CREATE TABLE IF NOT EXISTS plan_schema_versions(plan_id TEXT PRIMARY KEY,schema_hash TEXT,status TEXT,updated_at TEXT);
+     CREATE TABLE IF NOT EXISTS schema_baselines(plan_id TEXT,schema_version TEXT,from_schema_hash TEXT,action_rows INTEGER,risk_rows INTEGER,created_at TEXT,PRIMARY KEY(plan_id,schema_version));
     CREATE TABLE IF NOT EXISTS stage_status(plan_id TEXT,stage TEXT,status TEXT,updated_at TEXT,PRIMARY KEY(plan_id,stage));
      CREATE TABLE IF NOT EXISTS errors(id INTEGER PRIMARY KEY,plan_id TEXT,stage TEXT,file_path TEXT,error TEXT,traceback TEXT,created_at TEXT);
     CREATE TABLE IF NOT EXISTS exports(table_name TEXT,payload TEXT);
+     CREATE TABLE IF NOT EXISTS exports_v23(table_name TEXT,plan_id TEXT,record_key TEXT,payload TEXT,PRIMARY KEY(table_name,plan_id,record_key));
      ''');
     cols={r[1] for r in c.execute('PRAGMA table_info(plans)')}
     if 'status_llm' not in cols: c.execute('ALTER TABLE plans ADD COLUMN status_llm TEXT')
@@ -47,7 +51,7 @@ def connect():
     for name,decl in [('run_id','TEXT'),('provider','TEXT'),('actual_model','TEXT'),('input_cached','INTEGER'),('input_uncached','INTEGER'),('output_tokens','INTEGER'),('reasoning_tokens','INTEGER DEFAULT 0'),('reasoning_cost_usd','REAL DEFAULT 0'),('cost_usd','REAL'),('retry_count','INTEGER'),('api_calls','INTEGER')]:
         if name not in cols: c.execute(f'ALTER TABLE llm_raw ADD COLUMN {name} {decl}')
     run_cols={r[1] for r in c.execute('PRAGMA table_info(llm_runs)')}
-    for name,decl in [('api_calls','INTEGER DEFAULT 0'),('retries','INTEGER DEFAULT 0'),('reasoning_tokens','INTEGER DEFAULT 0'),('reasoning_cost_usd','REAL DEFAULT 0')]:
+    for name,decl in [('api_calls','INTEGER DEFAULT 0'),('retries','INTEGER DEFAULT 0'),('reasoning_tokens','INTEGER DEFAULT 0'),('reasoning_cost_usd','REAL DEFAULT 0'),('schema_hash','TEXT')]:
         if name not in run_cols: c.execute(f'ALTER TABLE llm_runs ADD COLUMN {name} {decl}')
     c.commit(); return c
 
@@ -69,15 +73,21 @@ def template_data():
             cols[name]=list(_CONFIG['schemas'][name])
         else:
             ws=w[name]; cols[name]=list(next(ws.values))
+    # Risk Detail preserves the schema-v2.2 one-row-per-risk fields; Risk Level
+    # is the separate plan-by-orientation aggregation in v2.3 exports.
+    cols['Risk Detail']=list(cols['Risk Level'])
     dictionary=list(sheets['Variable Dictionary'])
-    dictionary=[row for row in dictionary if len(row)>2 and row[2] not in {'plan_orientation','document_genre','plan_status'}]
-    changed_definitions={k:v for k,v in _CONFIG['fields'].items()}
-    for field,metadata in changed_definitions.items():
-        if field=='action_description':
-            replacement=('Action Level','Action granularity',field,'Action Level',metadata['definition'],metadata['allowed'],'One row per independently identifiable intervention; merge programme steps; truncate at a word boundary at 500 characters.',None,'Preserves one substantive intervention while retaining enough detail for its steps.',None)
-        else:
-            level='Risk Level' if field in {'fiscal_consequence_disclosed'} else 'Action/Risk Level' if field=='M_or_A' else 'Plan Level'
-            replacement=('Plan Classification' if level=='Plan Level' else 'Risk Information','Schema v2.2',field,level,metadata['definition'],metadata['allowed'],'Follow the schema v2.2 field rule exactly.',None,'Schema v2.2 controlled extraction field.',None)
+    valid_fields={field for sheet,fields in _CONFIG['schemas'].items() for field in fields}
+    header=dictionary[0] if dictionary else ('Workbook','Variable','Field','Level','Definition','Allowed/Format','Rule','Source','Notes','Example')
+    dictionary=[header]+[row for row in dictionary[1:] if len(row)>2 and row[2] in valid_fields]
+    changed_definitions=dict(_CONFIG['fields'])
+    sheet_for={field:sheet for sheet,fields in _CONFIG['schemas'].items() for field in fields}
+    for field in sorted(valid_fields):
+        metadata=changed_definitions.get(field,{'definition':field.replace('_',' '),'allowed':'free text'})
+        allowed=metadata.get('allowed','free text')
+        if isinstance(allowed,list): allowed=' | '.join(map(str,allowed))
+        level='Plan Level' if sheet_for[field]=='Plan Level' else 'Action Level'
+        replacement=(level,f"Schema v{_CONFIG['version']}",field,level,metadata.get('definition',field.replace('_',' ')),allowed,'Evidence-first extraction; use field-specific evidence and preserve explicit missingness.',None,'Raw structured extraction; no scores or indices.',None)
         idx=next((i for i,row in enumerate(dictionary) if len(row)>2 and row[2]==field),None)
         if idx is None: dictionary.append(replacement)
         else: dictionary[idx]=replacement
@@ -85,18 +95,19 @@ def template_data():
     control=list(sheets['Controlled Values'])
     new_controls=[]
     for field,metadata in changed_definitions.items():
-        if isinstance(metadata['allowed'],list):
-            new_controls.append((field,' | '.join(metadata['allowed']),metadata['definition']))
-    controlled_names={row[0] for row in new_controls}
-    control=[row for row in control if not (row and row[0] in {'plan_orientation','plan_scope','M_or_A'} or row and row[0] in controlled_names)]
-    control.extend(new_controls)
-    import yaml
-    hazards=yaml.safe_load((Path(__file__).parent/'dictionaries.yaml').read_text(encoding='utf-8')).get('hazards',{})
-    control.append(('hazard_normalized',' | '.join(hazards),'Controlled hazard labels loaded from dictionaries.yaml.'))
+        if isinstance(metadata.get('allowed'),list):
+            new_controls.append((field,' | '.join(map(str,metadata['allowed'])),metadata['definition']))
+        elif field in {'hazards','hazard_normalized'}:
+            import yaml
+            hazards=yaml.safe_load((Path(__file__).parent/'dictionaries.yaml').read_text(encoding='utf-8')).get('hazards',{})
+            new_controls.append((field,' | '.join(hazards),metadata['definition']))
+    control_header=control[0] if control else ('Variable','Allowed Values','Definition')
+    control=[control_header]+new_controls
     sheets['Controlled Values']=control
     protocol=list(sheets['Extraction Protocol'])
+    protocol=[protocol[0]] if protocol else ('Protocol','Instruction','Notes')
     for task,text in _CONFIG['prompts'].items():
-        protocol.append((f'Schema v2.2 {task}',text,'Final researcher extraction rule.'))
+        protocol.append((f"Schema v{_CONFIG['version']} {task}",text,'Final researcher extraction rule.'))
     sheets['Extraction Protocol']=protocol
     return cols,sheets
 def clean(s):

@@ -37,9 +37,9 @@ def estimate(c, provider='deepseek', model='deepseek-flash', top_k=25, max_calls
         pid=p['plan_id']; pages=c.execute('SELECT p.page_no,p.text,COALESCE(h.relevance,0) relevance,COALESCE(h.action_table,0) action_table,COALESCE(h.hits_json,"{}") hits FROM pages p LEFT JOIN page_hits h USING(plan_id,page_no) WHERE p.plan_id=? ORDER BY p.page_no',(pid,)).fetchall()
         if not pages: continue
         total_pages+=len(pages); pp=select_plan_pages(pages); rp,ap=rank_risk_action_pages(pages,top_k)
-        task_inputs=[sum((len(str(x['text']))+2)//3 for x in pp),sum(_chunks(rp,budget)),sum(_chunks(ap,budget))]
-        # One plan call, then page chunks, bounded by the configured per-plan cap.
-        calls=min(max_calls,1+(len(_chunks(rp,budget)) if rp else 0)+(len(_chunks(ap,budget)) if ap else 0))
+        plan_input=sum((len(str(x['text']))+2)//3 for x in pp); risk_chunks=_chunks(rp,budget); action_chunks=_chunks(ap,budget)
+        task_inputs=[plan_input,sum(risk_chunks[:2]),sum(action_chunks)]
+        calls=min(max_calls,1+(min(2,len(risk_chunks)) if rp else 0)+(len(action_chunks) if ap else 0))
         inp=min(sum(task_inputs),calls*budget); out=calls*512
         # Assume a conservative 50% cached static prefix after initial warming.
         cost=cost_usd(inp,inp//2,out)

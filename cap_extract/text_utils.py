@@ -15,7 +15,7 @@ def truncate_capped_fields(data):
     if isinstance(data,list): return [truncate_capped_fields(value) for value in data]
     if not isinstance(data,dict): return data
     result={key:truncate_capped_fields(value) for key,value in data.items()}
-    for field,limit in (('evidence_text',200),('action_description',300)):
+    for field,limit in (('evidence_text',200),('action_evidence_text',200),('risk_evidence_text',200),('unaddressed_risk_evidence',200),('action_description',500)):
         if isinstance(result.get(field),str): result[field]=truncate_at_word_boundary(result[field],limit)
     return result
 

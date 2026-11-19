@@ -1,0 +1,1 @@
+Extract one Plan Level row for this document from the supplied pages. Cite only supplied page markers. Preserve source wording in verbatim fields and provide field-level evidence.

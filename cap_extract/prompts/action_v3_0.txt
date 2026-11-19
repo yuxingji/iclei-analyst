@@ -1,0 +1,1 @@
+Extract Action Level records only. Use one row per independent action/project/programme/policy. Cite only supplied pages. Link to supplied register risks using risk_key values and include field-level evidence.
